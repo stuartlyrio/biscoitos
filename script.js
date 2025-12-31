@@ -18,21 +18,22 @@ async function carregarProdutos() {
         querySnapshot.forEach((doc) => {
             const produto = doc.data();
             const qtd = produto.quantidade || 0;
+            const estoqueBool = produto.estoque ? 'true' : 'false'; // Converte para string para passar no HTML
             
             // Define Status e Texto da Quantidade
             let statusClass = produto.estoque ? 'pronta-entrega' : 'encomenda';
             let statusTexto = produto.estoque ? 'Pronta Entrega' : 'Sob Encomenda';
             
-            // Se for Pronta Entrega, mostra quantas unidades tem
             let htmlQtd = '';
             if (produto.estoque && qtd > 0) {
                 htmlQtd = `<p class="estoque-qtd">${qtd} unid. disponíveis</p>`;
             } else {
-                htmlQtd = `<p class="estoque-qtd" style="color:transparent;">.</p>`; // Mantém o espaço para não desalinha
+                htmlQtd = `<p class="estoque-qtd" style="color:transparent;">.</p>`;
             }
             
+            // ATENÇÃO: Agora passamos 'produto.estoque' (true/false) para a função adicionar
             const cardHTML = `
-                <div class="card" onclick="window.adicionar('${produto.nome}', ${produto.preco}, '${produto.imagem}')">
+                <div class="card" onclick="window.adicionar('${produto.nome}', ${produto.preco}, '${produto.imagem}', ${estoqueBool})">
                     <span class="status ${statusClass}">${statusTexto}</span>
                     <img src="${produto.imagem}" alt="${produto.nome}">
                     <div class="info-card">
@@ -72,8 +73,8 @@ function configurarScroll() {
             else janela.scrollTop -= step;
         };
 
-        if (btnUp) btnUp.onclick = () => mover('up');
-        if (btnDown) btnDown.onclick = () => mover('down');
+        if (btnUp) { btnUp.onclick = null; btnUp.onclick = () => mover('up'); }
+        if (btnDown) { btnDown.onclick = null; btnDown.onclick = () => mover('down'); }
         
         janela.onwheel = (evento) => {
             evento.preventDefault();
@@ -83,19 +84,36 @@ function configurarScroll() {
     });
 }
 
-// === 3. CARRINHO ===
+// === 3. CARRINHO E COMPRA ===
 function toggleCarrinho() {
     document.getElementById('carrinho-sidebar').classList.toggle('aberto');
     document.getElementById('overlay').classList.toggle('ativo');
 }
 
-function adicionar(nome, preco, imagem) {
+// ATUALIZADO: Agora recebe se está em estoque ou não
+function adicionar(nome, preco, imagem, emEstoque) {
+    
+    // Converte string 'true'/'false' de volta para boolean se necessário
+    const isEstoque = (emEstoque === true || emEstoque === 'true');
+
+    // === AVISO AO CLIENTE ===
+    if (!isEstoque) {
+        alert("⚠️ ATENÇÃO: Este item é SOB ENCOMENDA.\nEle será produzido especialmente para você e pode levar mais tempo.");
+    }
+
     const itemExistente = carrinho.find(item => item.nome === nome);
     if (itemExistente) {
         itemExistente.quantidade += 1;
         animarBotao();
     } else {
-        carrinho.push({ nome, preco, imagem, quantidade: 1 });
+        // Salva se é encomenda ou não dentro do item
+        carrinho.push({ 
+            nome, 
+            preco, 
+            imagem, 
+            quantidade: 1, 
+            tipo: isEstoque ? 'Pronta Entrega' : 'Encomenda' 
+        });
         toggleCarrinho(); 
     }
     atualizarCarrinhoVisual();
@@ -140,12 +158,16 @@ function atualizarCarrinhoVisual() {
             total += item.preco * item.quantidade;
             qtd += item.quantidade;
 
+            // Mostra uma etiqueta pequena no carrinho também
+            const etiqueta = item.tipo === 'Encomenda' ? 
+                '<span style="font-size:0.7rem; color:orange; font-weight:bold;">(Encomenda)</span>' : '';
+
             const div = document.createElement('div');
             div.className = 'item-carrinho';
             div.innerHTML = `
                 <img src="${item.imagem}">
                 <div class="item-info">
-                    <div>${item.nome}</div>
+                    <div>${item.nome} ${etiqueta}</div>
                     <div style="color:#666">R$ ${item.preco.toFixed(2).replace('.', ',')}</div>
                 </div>
                 <div class="item-controles">
@@ -162,17 +184,43 @@ function atualizarCarrinhoVisual() {
     if(totalEl) totalEl.innerText = `R$ ${total.toFixed(2).replace('.', ',')}`;
 }
 
+// === LÓGICA DE SEPARAÇÃO NO WHATSAPP ===
 function finalizarCompra() {
     if (carrinho.length === 0) return alert("Carrinho vazio!");
     const telefone = "5521999999999"; 
-    let msg = "Olá! Pedido:\n\n";
+    
+    // Separa os itens
+    const prontos = carrinho.filter(i => i.tipo === 'Pronta Entrega');
+    const encomendas = carrinho.filter(i => i.tipo === 'Encomenda');
+    
+    let msg = "Olá! Gostaria de fazer o seguinte pedido:\n\n";
     let total = 0;
-    carrinho.forEach(i => {
-        let sub = i.preco * i.quantidade;
-        total += sub;
-        msg += `• ${i.quantidade}x ${i.nome}\n`;
-    });
-    msg += `\n*Total: R$ ${total.toFixed(2).replace('.', ',')}*`;
+
+    // Bloco Pronta Entrega
+    if (prontos.length > 0) {
+        msg += "*📦 PRONTA ENTREGA:*\n";
+        prontos.forEach(i => {
+            let sub = i.preco * i.quantidade;
+            total += sub;
+            msg += `• ${i.quantidade}x ${i.nome} - R$ ${sub.toFixed(2).replace('.', ',')}\n`;
+        });
+        msg += "\n";
+    }
+
+    // Bloco Encomendas
+    if (encomendas.length > 0) {
+        msg += "*⏳ SOB ENCOMENDA:*\n";
+        encomendas.forEach(i => {
+            let sub = i.preco * i.quantidade;
+            total += sub;
+            msg += `• ${i.quantidade}x ${i.nome} - R$ ${sub.toFixed(2).replace('.', ',')}\n`;
+        });
+        msg += "\n";
+    }
+
+    msg += `*Total Geral: R$ ${total.toFixed(2).replace('.', ',')}*`;
+    msg += "\n\nComo faço para retirar/pagar?";
+    
     window.open(`https://wa.me/${telefone}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
