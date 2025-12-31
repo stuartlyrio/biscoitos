@@ -12,12 +12,14 @@
     --linha: rgba(255, 255, 255, 0.3);
 }
 
-/* === ESTRUTURA GERAL === */
+/* =========================================
+   ESTILO GERAL (PC E BASE)
+   ========================================= */
 body {
     background-color: var(--verde-fundo);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     color: white;
-    /* No PC mantém fixo, no mobile muda (veja final do arquivo) */
+    /* No PC a tela é fixa (sem barra de rolagem geral) */
     height: 100vh;
     width: 100vw;
     overflow: hidden; 
@@ -46,11 +48,12 @@ header p {
     opacity: 0.8;
 }
 
-/* === CONTAINER DAS COLUNAS === */
+/* Container das Colunas (PC: Lado a Lado) */
 .vitrine-container {
     flex: 1;
     display: flex;
-    justify-content: center; /* Centraliza no PC */
+    flex-direction: row; /* Garante lado a lado no PC */
+    justify-content: center;
     align-items: flex-start;
     padding: 10px 20px;
     width: 100%;
@@ -58,12 +61,11 @@ header p {
     gap: 15px;
 }
 
-/* === COLUNA (PC) === */
+/* Coluna Individual (PC) */
 .coluna {
-    /* MUDANÇA: flex: 1 faz a coluna esticar para preencher vazio */
-    flex: 1; 
-    max-width: 300px; /* Mas não deixa ficar gigante demais */
-    min-width: 240px;
+    flex: 1; /* Estica para ocupar espaço */
+    max-width: 300px;
+    min-width: 220px;
     border-right: 1px solid var(--linha);
     display: flex;
     flex-direction: column;
@@ -86,9 +88,9 @@ header p {
     font-weight: bold;
 }
 
-/* === JANELA DO CARROSSEL (PC) === */
+/* Janela do Carrossel (PC: Altura Fixa com Scroll Interno) */
 .janela-carrossel {
-    height: 660px; /* Altura fixa para caber 3 itens no PC */
+    height: 660px; /* Altura exata para 3 cartões */
     width: 100%;
     overflow: hidden; 
     position: relative;
@@ -105,7 +107,7 @@ header p {
     padding: 5px 0;
 }
 
-/* === SETAS (PC) === */
+/* Setas de Navegação (PC) */
 .seta {
     flex: 0 0 auto;
     background: none;
@@ -116,14 +118,15 @@ header p {
     z-index: 20;
     padding: 0;
     margin: 5px 0;
+    display: block; /* Visível no PC */
 }
 .seta:hover { color: white; transform: scale(1.2); }
 
-/* === CARTÃO DO PRODUTO === */
+/* Cartão do Produto */
 .card {
     background-color: var(--bege-card);
     height: 210px;
-    min-height: 210px; /* Garante tamanho no mobile */
+    min-height: 210px;
     width: 100%;
     border-radius: 12px;
     padding: 8px;
@@ -163,14 +166,12 @@ header p {
 }
 .status.pronta-entrega { background-color: #28a745; }
 .status.encomenda { background-color: #e67e22; }
-
-/* Texto Qtd Estoque */
 .estoque-qtd {
     font-size: 0.75rem; color: #555; margin: 2px 0; font-weight: normal;
     background-color: rgba(255,255,255,0.6); border-radius: 4px; padding: 0 4px; display: inline-block;
 }
 
-/* === CARRINHO & SIDEBAR === */
+/* Carrinho Flutuante */
 .btn-carrinho-flutuante {
     position: fixed; bottom: 20px; right: 20px;
     background-color: #28a745; color: white; padding: 12px 20px;
@@ -180,6 +181,7 @@ header p {
 }
 #contador-carrinho { background: white; color: #28a745; border-radius: 50%; padding: 2px 6px; font-size: 0.8rem; }
 
+/* Sidebar Carrinho */
 .carrinho-sidebar {
     position: fixed; top: 0; right: -100%; width: 320px; height: 100%;
     background-color: white; box-shadow: -5px 0 15px rgba(0,0,0,0.3);
@@ -194,6 +196,8 @@ header p {
 .btn-finalizar { width: 100%; background: #28a745; color: white; border: none; padding: 12px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; }
 .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1500; display: none; }
 .overlay.ativo { display: block; }
+
+/* Itens do Carrinho */
 .item-carrinho { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
 .item-carrinho img { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; }
 .item-info { flex: 1; font-size: 0.85rem; }
@@ -201,46 +205,63 @@ header p {
 .btn-qtd { background: white; border: none; width: 20px; height: 20px; border-radius: 50%; cursor: pointer; font-weight: bold; }
 
 /* =========================================
-   RESPONSIVIDADE (CELULAR E TABLET)
+   RESPONSIVIDADE (CELULAR / TABLET)
    ========================================= */
-@media (max-width: 768px) {
-    /* Libera a rolagem da página inteira */
+@media (max-width: 900px) {
+    /* 1. Libera a rolagem da página inteira (Touch funciona aqui) */
     body {
         height: auto;
+        min-height: 100vh;
         overflow-y: auto; 
+        overflow-x: hidden;
     }
 
-    /* Muda colunas para ficarem uma embaixo da outra */
+    /* 2. Muda colunas para ficarem uma embaixo da outra */
     .vitrine-container {
-        flex-direction: column;
-        height: auto;
-        padding-bottom: 80px; /* Espaço pro botão flutuante */
+        display: block; /* Remove o Flex Row */
+        padding: 10px;
+        padding-bottom: 80px; /* Espaço para o botão do carrinho não cobrir o último item */
     }
 
-    /* Coluna ocupa largura total */
+    /* 3. Ajusta a Coluna para ocupar a tela toda */
     .coluna {
         width: 100%;
         max-width: 100%;
+        min-width: 0;
         border-right: none;
-        border-bottom: 1px solid var(--linha);
-        margin-bottom: 20px;
+        border-bottom: 2px solid rgba(255,255,255,0.1);
+        margin-bottom: 30px;
         padding-bottom: 20px;
-        flex: none; /* Desliga o flex 1 do PC */
+        display: block; /* Remove centralização forçada */
     }
 
-    /* Esconde as setas (não precisa no mobile) */
+    /* 4. Esconde as setas (Use o dedo para rolar) */
     .seta {
-        display: none;
+        display: none !important;
     }
 
-    /* Abre a janela para mostrar TUDO */
+    /* 5. A Janela se abre para mostrar TODOS os produtos de uma vez */
     .janela-carrossel {
-        height: auto; /* Altura automática = mostra todos os produtos */
-        overflow: visible;
+        height: auto; /* Altura automática */
+        overflow: visible; /* Nada escondido */
     }
 
-    /* Ajuste no carrinho para mobile */
+    /* 6. Ajuste nos Cards para ficarem grandes e bonitos */
+    .lista-itens {
+        display: grid;
+        grid-template-columns: 1fr 1fr; /* Dois cards por linha (opcional) */
+        gap: 15px;
+    }
+
+    /* Se a tela for MUITO pequena, 1 card por linha */
+    @media (max-width: 480px) {
+        .lista-itens {
+            grid-template-columns: 1fr; /* Um card por linha */
+        }
+    }
+
+    /* Carrinho ocupa tela toda no celular */
     .carrinho-sidebar {
-        width: 100%; /* Carrinho tela cheia no celular */
+        width: 100%;
     }
 }
