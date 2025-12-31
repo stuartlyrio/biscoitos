@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Subir Produtos</title>
+</head>
+<body>
+
+    <h1>Ferramenta de Upload Inicial</h1>
+    <button onclick="subir()">ENVIAR PRODUTOS PARA O FIREBASE</button>
+
+    <script type="module">
+        import { db, setDoc, doc } from './firebase-config.js';
+
+        const PRODUTOS = [
+            // DOCES
+            { nome: "Banana com Canela 500g", preco: 22.00, imagem: "img/BISCOITO/DOCE/BISCOITO_DOCE_SABOR_BANANA_COM_CANELA.png", categoria: "biscoitos", estoque: true },
+            { nome: "Casadinho 500g", preco: 22.00, imagem: "img/BISCOITO/DOCE/BISCOITO_DOCE_SABOR_CASADINHO.png", categoria: "biscoitos", estoque: true },
+            { nome: "Casadinho L. Condensado 500g", preco: 22.00, imagem: "img/BISCOITO/DOCE/BISCOITO_DOCE_SABOR_CASADINHO_DE_LEITE_CONDENSADO.png", categoria: "biscoitos", estoque: true },
+            { nome: "Choconata 500g", preco: 22.00, imagem: "img/BISCOITO/DOCE/BISCOITO_DOCE_SABOR_CHOCONATA.png", categoria: "biscoitos", estoque: true },
+            { nome: "Chocolate 500g", preco: 22.00, imagem: "img/BISCOITO/DOCE/BISCOITO_DOCE_SABOR_CHOCOLATE.png", categoria: "biscoitos", estoque: true },
+            { nome: "Chocolate Branco 500g", preco: 22.00, imagem: "img/BISCOITO/DOCE/BISCOITO_DOCE_SABOR_CHOCOLATE_BRANCO.png", categoria: "biscoitos", estoque: true },
+            { nome: "Churros 500g", preco: 22.00, imagem: "img/BISCOITO/DOCE/BISCOITO_DOCE_CHURROS.png", categoria: "biscoitos", estoque: true },
+            { nome: "Coco 500g", preco: 22.00, imagem: "img/BISCOITO/DOCE/BISCOITO_DOCE_SABOR_COCO.png", categoria: "biscoitos", estoque: true },
+            { nome: "Doce de Leite 500g", preco: 22.00, imagem: "img/BISCOITO/DOCE/BISCOITO_DOCE_SABOR_DOCE_DE_LEITE.png", categoria: "biscoitos", estoque: true },
+            { nome: "Farinha Láctea 500g", preco: 22.00, imagem: "img/BISCOITO/DOCE/BISCOITO_DOCE_SABOR_FARINHA_LÁCTEA.png", categoria: "biscoitos", estoque: true },
+            { nome: "Flocos 500g", preco: 22.00, imagem: "img/BISCOITO/DOCE/BISCOITO_DOCE_SABOR_FLOCOS.png", categoria: "biscoitos", estoque: true },
+            { nome: "Leite Condensado 500g", preco: 22.00, imagem: "img/BISCOITO/DOCE/BISCOITO_DOCE_SABOR_LEITE_CONDENSADO.png", categoria: "biscoitos", estoque: true },
+            { nome: "Leite Ninho 500g", preco: 22.00, imagem: "img/BISCOITO/DOCE/BISCOITO_DOCE_SABOR_LEITE_NINHO.png", categoria: "biscoitos", estoque: true },
+            { nome: "Nata 500g", preco: 22.00, imagem: "img/BISCOITO/DOCE/BISCOITO_DOCE_SABOR_NATA.png", categoria: "biscoitos", estoque: true },
+            { nome: "Uga Uga 500g", preco: 22.00, imagem: "img/BISCOITO/DOCE/BISCOITO_DOCE_SABOR_UGA_UGA.png", categoria: "biscoitos", estoque: true },
+
+            // SALGADOS
+            { nome: "Bacon 400g", preco: 22.00, imagem: "img/BISCOITO/SALGADO/BISCOITO_SALGADO_SABOR_BACON.png", categoria: "biscoitos", estoque: true },
+            { nome: "Camarão 400g", preco: 22.00, imagem: "img/BISCOITO/SALGADO/BISCOITO_SALGADO_SABOR_CAMARÃO.png", categoria: "biscoitos", estoque: true },
+            { nome: "Churrasco 400g", preco: 22.00, imagem: "img/BISCOITO/SALGADO/BISCOITO_SALGADO_SABOR_CHURRASCO.png", categoria: "biscoitos", estoque: true },
+            { nome: "Pimenta 400g", preco: 22.00, imagem: "img/BISCOITO/SALGADO/BISCOITO_SALGADO_SABOR_PIMENTA.png", categoria: "biscoitos", estoque: true },
+            { nome: "Pizza 400g", preco: 22.00, imagem: "img/BISCOITO/SALGADO/BISCOITO_SALGADO_SABOR_PIZZA.png", categoria: "biscoitos", estoque: true },
+            { nome: "Queijo 400g", preco: 22.00, imagem: "img/BISCOITO/SALGADO/BISCOITO_SALGADO_SABOR_QUEIJO.png", categoria: "biscoitos", estoque: true },
+
+            // COMPOTAS
+            { nome: "Doce de Leite Tradicional 650g", preco: 32.00, imagem: "img/COMPOTA/doce_de_leite_em_compota.png", categoria: "compotas", estoque: true },
+            { nome: "Doce de Leite com Coco 650g", preco: 32.00, imagem: "img/COMPOTA/doce_de_leite_com_coco.png", categoria: "compotas", estoque: true },
+            { nome: "Doce de Leite com Maracujá 650g", preco: 32.00, imagem: "img/COMPOTA/doce_de_leite_com_maracujá.png", categoria: "compotas", estoque: true },
+            { nome: "Doce de Leite com Morango 650g", preco: 32.00, imagem: "img/COMPOTA/doce_de_leite_com_morango.png", categoria: "compotas", estoque: true },
+            { nome: "Cocada Cremosa com Abacaxi 650g", preco: 32.00, imagem: "img/COMPOTA/coco_com_abacaxi.png", categoria: "compotas", estoque: true }
+        ];
+
+        window.subir = async () => {
+            console.log("Iniciando upload...");
+            for (const p of PRODUTOS) {
+                // Cria um ID único simples
+                const id = p.nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '-').replace(/\./g, '').toLowerCase();
+                
+                try {
+                    await setDoc(doc(db, "produtos", id), p);
+                    console.log("Enviado: " + p.nome);
+                } catch (e) {
+                    console.error("Erro: " + p.nome, e);
+                    alert("Erro no upload. Veja o console.");
+                    return;
+                }
+            }
+            alert("Sucesso! Produtos enviados.");
+        };
+    </script>
+</body>
+</html>

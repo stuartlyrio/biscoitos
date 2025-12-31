@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Admin - Estoque</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f4f4; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #1b3d2f; }
+        
+        #login-screen { text-align: center; margin-top: 50px; }
+        input { padding: 10px; margin: 5px; width: 80%; border: 1px solid #ddd; border-radius: 5px; }
+        button { padding: 10px 20px; background: #1b3d2f; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #142e23; }
+
+        #admin-panel { display: none; }
+        .produto-item { display: flex; align-items: center; justify-content: space-between; padding: 15px; border-bottom: 1px solid #eee; }
+        .produto-info { display: flex; align-items: center; gap: 15px; }
+        .produto-img { width: 50px; height: 50px; object-fit: cover; border-radius: 5px; }
+        
+        /* Controles de Estoque */
+        .controles { display: flex; align-items: center; gap: 15px; }
+        
+        /* Input de Quantidade */
+        .input-qtd { width: 60px; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 5px; font-weight: bold; }
+
+        /* Botão Switch */
+        .switch { position: relative; display: inline-block; width: 50px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #28a745; }
+        input:checked + .slider:before { transform: translateX(26px); }
+        
+        .status-text { font-size: 0.8rem; font-weight: bold; min-width: 80px; text-align: right;}
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Gerenciar Estoque 📦</h1>
+
+    <div id="login-screen">
+        <input type="email" id="email" placeholder="Email de Admin">
+        <input type="password" id="senha" placeholder="Senha">
+        <br><br>
+        <button id="btn-login">Entrar</button>
+        <p id="msg-erro" style="color: red;"></p>
+    </div>
+
+    <div id="admin-panel">
+        <div style="text-align: right; margin-bottom: 20px;">
+            <button onclick="sair()" style="background: #c0392b;">Sair</button>
+        </div>
+        <div id="lista-produtos">Carregando...</div>
+    </div>
+</div>
+
+<script type="module">
+    import { db, auth, collection, getDocs, doc, updateDoc, signInWithEmailAndPassword, onAuthStateChanged, signOut } from './firebase-config.js';
+
+    const btnLogin = document.getElementById('btn-login');
+    const loginScreen = document.getElementById('login-screen');
+    const adminPanel = document.getElementById('admin-panel');
+
+    btnLogin.addEventListener('click', async () => {
+        const email = document.getElementById('email').value;
+        const pass = document.getElementById('senha').value;
+        try {
+            await signInWithEmailAndPassword(auth, email, pass);
+        } catch (error) {
+            document.getElementById('msg-erro').innerText = "Erro: " + error.message;
+        }
+    });
+
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            loginScreen.style.display = 'none';
+            adminPanel.style.display = 'block';
+            carregarProdutosAdmin();
+        } else {
+            loginScreen.style.display = 'block';
+            adminPanel.style.display = 'none';
+        }
+    });
+
+    window.sair = () => signOut(auth);
+
+    async function carregarProdutosAdmin() {
+        const lista = document.getElementById('lista-produtos');
+        lista.innerHTML = '';
+
+        const querySnapshot = await getDocs(collection(db, "produtos"));
+        
+        querySnapshot.forEach((docSnap) => {
+            const p = docSnap.data();
+            const id = docSnap.id;
+            
+            // Lógica: Se estoque é true, usa a quantidade salva. Se não tiver quantidade definida, assume 0.
+            const quantidade = p.quantidade !== undefined ? p.quantidade : 0;
+            const checked = p.estoque ? 'checked' : '';
+            const label = p.estoque ? 'Pronta Entrega' : 'Encomenda';
+            const cor = p.estoque ? 'green' : 'orange';
+
+            const div = document.createElement('div');
+            div.className = 'produto-item';
+            div.innerHTML = `
+                <div class="produto-info">
+                    <img src="${p.imagem}" class="produto-img">
+                    <div>
+                        <strong>${p.nome}</strong><br>
+                        R$ ${p.preco}
+                    </div>
+                </div>
+                <div class="controles">
+                    <div style="text-align:center;">
+                        <small>Qtd:</small><br>
+                        <input type="number" class="input-qtd" value="${quantidade}" min="0" onchange="atualizarQtd('${id}', this.value)">
+                    </div>
+                    
+                    <div style="display:flex; align-items:center;">
+                        <label class="switch">
+                            <input type="checkbox" id="check-${id}" ${checked} onchange="atualizarStatusManual('${id}', this)">
+                            <span class="slider"></span>
+                        </label>
+                        <span class="status-text" style="color:${cor}" id="text-${id}">${label}</span>
+                    </div>
+                </div>
+            `;
+            lista.appendChild(div);
+        });
+    }
+
+    // Atualiza APENAS a quantidade
+    window.atualizarQtd = async (id, valor) => {
+        const novaQtd = parseInt(valor);
+        const produtoRef = doc(db, "produtos", id);
+        
+        // Se colocar quantidade > 0, liga o "Pronta Entrega" automaticamente
+        // Se colocar 0, vira "Encomenda" automaticamente
+        const novoStatus = novaQtd > 0;
+        
+        // Atualiza visualmente o Switch e o Texto
+        const checkEl = document.getElementById(`check-${id}`);
+        const textoEl = document.getElementById(`text-${id}`);
+        
+        if(checkEl) checkEl.checked = novoStatus;
+        if(textoEl) {
+            textoEl.innerText = novoStatus ? "Pronta Entrega" : "Encomenda";
+            textoEl.style.color = novoStatus ? "green" : "orange";
+        }
+
+        // Salva no Firebase
+        await updateDoc(produtoRef, { 
+            quantidade: novaQtd,
+            estoque: novoStatus
+        });
+    };
+
+    // Atualiza APENAS o Status (caso queira forçar Encomenda mesmo tendo estoque)
+    window.atualizarStatusManual = async (id, checkbox) => {
+        const novoStatus = checkbox.checked;
+        const textoEl = document.getElementById(`text-${id}`);
+        
+        textoEl.innerText = novoStatus ? "Pronta Entrega" : "Encomenda";
+        textoEl.style.color = novoStatus ? "green" : "orange";
+
+        const produtoRef = doc(db, "produtos", id);
+        await updateDoc(produtoRef, { estoque: novoStatus });
+    };
+</script>
+
+</body>
+</html>
