@@ -1,8 +1,7 @@
 import { db, collection, getDocs } from './firebase-config.js';
 
-// === VARIÁVEIS GLOBAIS ===
 let carrinho = [];
-const step = 225; // Altura Card (210) + Gap (15)
+const step = 225;
 
 // === 1. CARREGAR PRODUTOS ===
 async function carregarProdutos() {
@@ -18,9 +17,8 @@ async function carregarProdutos() {
         querySnapshot.forEach((doc) => {
             const produto = doc.data();
             const qtd = produto.quantidade || 0;
-            const estoqueBool = produto.estoque ? 'true' : 'false'; // Converte para string para passar no HTML
+            const estoqueBool = produto.estoque ? 'true' : 'false';
             
-            // Define Status e Texto da Quantidade
             let statusClass = produto.estoque ? 'pronta-entrega' : 'encomenda';
             let statusTexto = produto.estoque ? 'Pronta Entrega' : 'Sob Encomenda';
             
@@ -31,7 +29,6 @@ async function carregarProdutos() {
                 htmlQtd = `<p class="estoque-qtd" style="color:transparent;">.</p>`;
             }
             
-            // ATENÇÃO: Agora passamos 'produto.estoque' (true/false) para a função adicionar
             const cardHTML = `
                 <div class="card" onclick="window.adicionar('${produto.nome}', ${produto.preco}, '${produto.imagem}', ${estoqueBool})">
                     <span class="status ${statusClass}">${statusTexto}</span>
@@ -58,7 +55,7 @@ async function carregarProdutos() {
     }
 }
 
-// === 2. CONFIGURAR SCROLL ===
+// === 2. CONFIGURAR SCROLL (COM SEGURANÇA PARA MOBILE) ===
 function configurarScroll() {
     const colunas = document.querySelectorAll('.coluna');
     colunas.forEach(coluna => {
@@ -66,6 +63,7 @@ function configurarScroll() {
         const btnUp = coluna.querySelector('.up');
         const btnDown = coluna.querySelector('.down');
 
+        // Se estiver no mobile, a janela pode não ter scroll, mas o código roda igual
         if (!janela) return;
 
         const mover = (direcao) => {
@@ -73,32 +71,31 @@ function configurarScroll() {
             else janela.scrollTop -= step;
         };
 
+        // Verifica se o botão existe antes de adicionar o clique (no mobile eles somem)
         if (btnUp) { btnUp.onclick = null; btnUp.onclick = () => mover('up'); }
         if (btnDown) { btnDown.onclick = null; btnDown.onclick = () => mover('down'); }
         
         janela.onwheel = (evento) => {
-            evento.preventDefault();
-            if (evento.deltaY > 0) mover('down');
-            else mover('up');
+            // Só ativa o scroll da rodinha se a tela for grande (PC)
+            if (window.innerWidth > 768) {
+                evento.preventDefault();
+                if (evento.deltaY > 0) mover('down');
+                else mover('up');
+            }
         };
     });
 }
 
-// === 3. CARRINHO E COMPRA ===
+// === 3. CARRINHO E LÓGICA DE COMPRA ===
 function toggleCarrinho() {
     document.getElementById('carrinho-sidebar').classList.toggle('aberto');
     document.getElementById('overlay').classList.toggle('ativo');
 }
 
-// ATUALIZADO: Agora recebe se está em estoque ou não
 function adicionar(nome, preco, imagem, emEstoque) {
-    
-    // Converte string 'true'/'false' de volta para boolean se necessário
     const isEstoque = (emEstoque === true || emEstoque === 'true');
-
-    // === AVISO AO CLIENTE ===
     if (!isEstoque) {
-        alert("⚠️ ATENÇÃO: Este item é SOB ENCOMENDA.\nEle será produzido especialmente para você e pode levar mais tempo.");
+        alert("⚠️ ATENÇÃO: Este item é SOB ENCOMENDA.\nEle será produzido especialmente para você.");
     }
 
     const itemExistente = carrinho.find(item => item.nome === nome);
@@ -106,12 +103,8 @@ function adicionar(nome, preco, imagem, emEstoque) {
         itemExistente.quantidade += 1;
         animarBotao();
     } else {
-        // Salva se é encomenda ou não dentro do item
         carrinho.push({ 
-            nome, 
-            preco, 
-            imagem, 
-            quantidade: 1, 
+            nome, preco, imagem, quantidade: 1, 
             tipo: isEstoque ? 'Pronta Entrega' : 'Encomenda' 
         });
         toggleCarrinho(); 
@@ -158,7 +151,6 @@ function atualizarCarrinhoVisual() {
             total += item.preco * item.quantidade;
             qtd += item.quantidade;
 
-            // Mostra uma etiqueta pequena no carrinho também
             const etiqueta = item.tipo === 'Encomenda' ? 
                 '<span style="font-size:0.7rem; color:orange; font-weight:bold;">(Encomenda)</span>' : '';
 
@@ -184,19 +176,16 @@ function atualizarCarrinhoVisual() {
     if(totalEl) totalEl.innerText = `R$ ${total.toFixed(2).replace('.', ',')}`;
 }
 
-// === LÓGICA DE SEPARAÇÃO NO WHATSAPP ===
 function finalizarCompra() {
     if (carrinho.length === 0) return alert("Carrinho vazio!");
     const telefone = "5521999999999"; 
     
-    // Separa os itens
     const prontos = carrinho.filter(i => i.tipo === 'Pronta Entrega');
     const encomendas = carrinho.filter(i => i.tipo === 'Encomenda');
     
     let msg = "Olá! Gostaria de fazer o seguinte pedido:\n\n";
     let total = 0;
 
-    // Bloco Pronta Entrega
     if (prontos.length > 0) {
         msg += "*📦 PRONTA ENTREGA:*\n";
         prontos.forEach(i => {
@@ -207,7 +196,6 @@ function finalizarCompra() {
         msg += "\n";
     }
 
-    // Bloco Encomendas
     if (encomendas.length > 0) {
         msg += "*⏳ SOB ENCOMENDA:*\n";
         encomendas.forEach(i => {
@@ -224,11 +212,9 @@ function finalizarCompra() {
     window.open(`https://wa.me/${telefone}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
-// EXPÕE FUNÇÕES
 window.adicionar = adicionar;
 window.toggleCarrinho = toggleCarrinho;
 window.alterarQtd = alterarQtd;
 window.finalizarCompra = finalizarCompra;
 
-// INÍCIO
 carregarProdutos();
